@@ -132,20 +132,10 @@ RegisterCommand('pointing', function(source, args, raw)
 		end
 
 		Citizen.CreateThread(function()
-			while Pointing do
+			local ped = PlayerPedId()
+
+			while Pointing and IsPedOnFoot(ped) do
 				Citizen.Wait(0)
-				local ped = PlayerPedId()
-
-				if not IsPedOnFoot(ped) then
-					ResetPedMovementClipset(ped, 0)
-					RequestTaskMoveNetworkStateTransition(ped, 'Stop')
-
-					if not IsPedInjured(ped) then ClearPedSecondaryTask(ped) end
-
-					SetPedConfigFlag(ped, 36, 0)
-					ClearPedSecondaryTask(ped)
-					Pointing = false
-				end
 
 				local camPitch = GetGameplayCamRelativePitch()
 
@@ -176,14 +166,16 @@ RegisterCommand('pointing', function(source, args, raw)
 				SetTaskMoveNetworkSignalBool(ped, 'isBlocked', blocked)
 				SetTaskMoveNetworkSignalBool(ped, 'isFirstPerson', GetCamViewModeForContext(GetCamActiveViewModeContext()) == 4)
 			end
+
+			ResetPedMovementClipset(ped, 0)
+			RequestTaskMoveNetworkStateTransition(ped, 'Stop')
+
+			if not IsPedInjured(ped) then ClearPedSecondaryTask(ped) end
+
+			SetPedConfigFlag(ped, 36, 0)
 		end)
 	else
-		RequestTaskMoveNetworkStateTransition(ped, 'Stop')
-
-		if not IsPedInjured(ped) then ClearPedSecondaryTask(ped) end
-
-		SetPedConfigFlag(ped, 36, 0)
-		ClearPedSecondaryTask(ped)
+		Pointing = false
 	end
 end)
 
@@ -217,6 +209,7 @@ function EmoteCancel(force)
 
     PtfxNotif = false
     PtfxPrompt = false
+	Pointing = false
 
     if IsInAnimation then
         if LocalPlayer.state.ptfx then
@@ -488,6 +481,8 @@ end
 
 function OnEmotePlay(EmoteName, textureVariation)
     InVehicle = IsPedInAnyVehicle(PlayerPedId(), true)
+	Pointing = false
+
     if not Config.AllowedInCars and InVehicle == 1 then
         return
     end
